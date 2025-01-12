@@ -1,0 +1,69 @@
+comp_unit = { soi ~ decl* ~ eoi }
+soi       = { SOI }
+eoi       = { EOI }
+
+type_enum = { ("u64" | "u32" | "u16" | "u8" | "i64" | "i32" | "i16" | "i8" | "void") }
+types     = { (star)* ~ type_enum }
+star      = { "*" }
+
+block  = { "{" ~ (stmt | decl)* ~ "}" }
+stmt   = { (return | exp_stmt) }
+return = { "return" ~ (exp)? ~ ";" }
+exp_stmt = { (exp)? ~ ";" }
+
+decl = { (const_decl | var_decl | extern_function_def) }
+
+extern_function_def = {
+    ("extern" ~ "fn" ~ ident ~ "(" ~ ")" ~ types ~ ";" | "extern" ~ "fn" ~ ident ~ "(" ~ param ~ ("," ~ param)* ~ ","? ~ ")" ~ types ~ ";")
+}
+
+const_decl = {
+    "const" ~ ident ~ "=" ~ const_initial_value ~ ";"
+}
+
+const_initial_value = { (function_def | const_exp) }
+
+var_decl = {
+    "var" ~ ident ~ ":" ~ types ~ "=" ~ exp ~ ";"
+}
+
+function_def = {
+    ("fn" ~ "(" ~ ")" ~ types ~ block | "fn" ~ "(" ~ param ~ ("," ~ param)* ~ ","? ~ ")" ~ types ~ block)
+}
+param        = { ident ~ ":" ~ types }
+
+WHITESPACE = _{ " " | "\t" | "\n" }
+ident      = @{ ((ALPHABETIC | NUMBER | "_")+ | "@" ~ string) }
+string     = ${ "\"" ~ inner ~ "\"" }
+inner      = @{ char* }
+char       =  {
+    !("\"" | "\\") ~ ANY
+  | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+  | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+const_exp =  { exp }
+exp       =  { prefix* ~ primary ~ postfix* ~ (infix ~ prefix* ~ primary ~ postfix*)* }
+infix     = _{ add | sub | mul | div | mod | eq | neq }
+add       =  { "+" }
+sub       =  { "-" }
+mul       =  { "*" }
+div       =  { "/" }
+mod       =  { "%" }
+eq        =  { "==" }
+neq       =  { "!=" }
+prefix    = _{ neg | pos }
+pos       =  { "+" }
+neg       =  { "-" }
+postfix   = _{ convert_type | call }
+primary   = _{ deref | ("(" ~ exp ~ ")") | number | lval | deref | get_addr }
+
+lval         = { ident }
+deref        = { ("*" ~ lval) | ("*" ~ "(" ~ exp ~ ")") | ("(" ~ exp ~ ")" ~ "[" ~ exp ~ "]") | (lval ~ "[" ~ exp ~ "]") }
+get_addr     = { "&" ~ lval }
+convert_type = { "as" ~ types }
+call         = { ("(" ~ ")") | ("(" ~ exp ~ ("," ~ exp)* ~ ","? ~ ")") }
+
+number = @{
+    "-"? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
+}
