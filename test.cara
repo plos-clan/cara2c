@@ -1,0 +1,15 @@
+const return_value = 0;
+var test: i8 = 100;
+
+extern fn print (num: u64) void;
+
+const get_something = fn () i32 {
+    return 0;
+};
+
+const main = fn () i32 {
+    var abcd: i32 = return_value as i32 + test as i32 + get_something();
+    print(abcd as u64);
+    return abcd;
+};
+
